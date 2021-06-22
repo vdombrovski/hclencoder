@@ -1,4 +1,4 @@
-module github.optum.com/Forge/hclencoder
+module github.com/vdombrovski/hclencoder
 
 go 1.14
 
