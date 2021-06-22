@@ -186,7 +186,6 @@ func encodeMap(in reflect.Value) (ast.Node, []*ast.ObjectKey, error) {
 	l := make(objectItems, 0, in.Len())
 	for _, key := range in.MapKeys() {
 		tkn, _ := tokenize(key, true) // error impossible since we've already checked key kind
-		tkn.Text = fmt.Sprintf(`"%s"`, tkn.Text)
 		val, childKey, err := encode(in.MapIndex(key))
 		if err != nil {
 			return nil, nil, err
@@ -194,7 +193,7 @@ func encodeMap(in reflect.Value) (ast.Node, []*ast.ObjectKey, error) {
 		if val == nil {
 			continue
 		}
-
+		processType := false
 		switch typ := val.(type) {
 		case *ast.ObjectList:
 			// If the item is an object list, we need to flatten out the items.
@@ -207,8 +206,14 @@ func encodeMap(in reflect.Value) (ast.Node, []*ast.ObjectKey, error) {
 					Val:  obj.Val,
 				})
 			}
-
+		case *ast.LiteralType:
+			tkn.Text = fmt.Sprintf(`%s`, tkn.Text)
+			processType = true
 		default:
+			tkn.Text = fmt.Sprintf(`%s =`, tkn.Text)
+			processType = true
+		}
+		if processType {
 			item := &ast.ObjectItem{
 				Keys: []*ast.ObjectKey{{Token: tkn}},
 				Val:  val,
@@ -217,9 +222,7 @@ func encodeMap(in reflect.Value) (ast.Node, []*ast.ObjectKey, error) {
 				item.Keys = append(item.Keys, childKey...)
 			}
 			l = append(l, item)
-
 		}
-
 	}
 
 	sort.Sort(l)
@@ -274,10 +277,9 @@ func encodeStruct(in reflect.Value) (ast.Node, []*ast.ObjectKey, error) {
 		if isNil {
 			continue
 		}
-		if rawVal.Kind() == reflect.Map || rawVal.Kind() == reflect.Struct {
+		if rawVal.Kind() == reflect.Map || (rawVal.Kind() == reflect.Struct && len(childKeys) == 0) {
 			tkn.Text = fmt.Sprintf(`%s =`, tkn.Text)
 		}
-
 		// this field is a key and should be bubbled up to the parent node
 		if meta.key {
 			if lit, ok := val.(*ast.LiteralType); ok && lit.Token.Type == token.STRING {
@@ -300,6 +302,7 @@ func encodeStruct(in reflect.Value) (ast.Node, []*ast.ObjectKey, error) {
 		}
 
 		itemKey := &ast.ObjectKey{Token: tkn}
+
 
 		// if the item is an object list, we need to flatten out the items
 		if objectList, ok := val.(*ast.ObjectList); ok {
@@ -451,3 +454,4 @@ func (ol objectItems) Less(i, j int) bool {
 	}
 	return len(iKeys) <= len(jKeys)
 }
+
