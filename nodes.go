@@ -186,7 +186,7 @@ func encodeMap(in reflect.Value) (ast.Node, []*ast.ObjectKey, error) {
 	l := make(objectItems, 0, in.Len())
 	for _, key := range in.MapKeys() {
 		tkn, _ := tokenize(key, true) // error impossible since we've already checked key kind
-
+		tkn.Text = fmt.Sprintf(`"%s"`, tkn.Text)
 		val, childKey, err := encode(in.MapIndex(key))
 		if err != nil {
 			return nil, nil, err
@@ -269,6 +269,13 @@ func encodeStruct(in reflect.Value) (ast.Node, []*ast.ObjectKey, error) {
 		}
 		if val == nil {
 			continue
+		}
+		rawVal, isNil := deref(rawVal)
+		if isNil {
+			continue
+		}
+		if rawVal.Kind() == reflect.Map {
+			tkn.Text = fmt.Sprintf(`%s =`, tkn.Text)
 		}
 
 		// this field is a key and should be bubbled up to the parent node
