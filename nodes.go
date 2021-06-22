@@ -274,7 +274,7 @@ func encodeStruct(in reflect.Value) (ast.Node, []*ast.ObjectKey, error) {
 		if isNil {
 			continue
 		}
-		if rawVal.Kind() == reflect.Map {
+		if rawVal.Kind() == reflect.Map || rawVal.Kind() == reflect.Struct {
 			tkn.Text = fmt.Sprintf(`%s =`, tkn.Text)
 		}
 
